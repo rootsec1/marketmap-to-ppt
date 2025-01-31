@@ -24,6 +24,7 @@ Carefully analyze that the domain names of these companies are valid and not gib
 
 LOGO_DEV_API_KEY = os.environ.get("LOGO_DEV_API_KEY")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GOOGLE_SEARCH_API_KEY = os.environ.get("GOOGLE_SEARCH_API_KEY")
 
 S3_ACCESS_KEY = os.environ.get("S3_ACCESS_KEY")
 S3_SECRET_KEY = os.environ.get("S3_SECRET_KEY")

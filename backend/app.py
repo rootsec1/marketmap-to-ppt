@@ -1,22 +1,21 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-from sqlalchemy.orm import Session
-from fastapi import FastAPI, File, UploadFile, Depends
-from fastapi.middleware.cors import CORSMiddleware
-import logging
-import os
 import shutil
-from constants import *
-from service.gemini import *
-from service.asynchronous import *
-from service.presentation import *
-from service.object_storage import *
-from database import SessionLocal
+import os
+import logging
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, File, UploadFile, Depends
+from sqlalchemy.orm import Session
 
 
 # Local imports
-
+from database import SessionLocal
+from service.object_storage import *
+from service.presentation import *
+from service.asynchronous import *
+from service.gemini import *
+from constants import *
 
 # Create a tmp directory to store files before uploading to object storage
 os.makedirs("tmp", exist_ok=True)
@@ -60,12 +59,13 @@ async def analyze_market_map(file: UploadFile = File(...), db: Session = Depends
     logger.info(f"File saved to {file_location}")
 
     company_domain_dict: dict = prompt_gemini(IDENTIFY_LOGOS_PROMPT, file_location)
-    # company_domains = company_domain_dict.values()
-    # logger.info(f"Identified company domains: {company_domains}")
-
     company_names = list(company_domain_dict.keys())
-    company_domains = list(company_domain_dict.values())
+    # company_domains = company_domain_dict.values()
+
     company_website_urls = await get_company_website_urls_in_parallel(company_names)
+    # Filter out None values
+    company_website_urls = [url for url in company_website_urls if url]
+
     logger.info(f"Company website URLs: {company_website_urls}")
 
     # Upload file to object storage
@@ -108,11 +108,11 @@ async def analyze_market_map_text(query: str, db: Session = Depends(get_db)):
     logger.info(f"Received query: {query}")
     company_domain_dict: dict = prompt_gemini(FIX_COMPANY_NAMES_PROMPT.format(query=query))
     company_names = list(company_domain_dict.keys())
-    company_domains = list(company_domain_dict.values())
 
+    company_website_urls = await get_company_website_urls_in_parallel(company_names)
     # Fetch logos for identified companies
     logger.info("Fetching logos for identified companies in parallel")
-    downloaded_logos = await download_logos_in_parallel(company_domains)
+    downloaded_logos = await download_logos_in_parallel(company_website_urls)
     # Filter out None values
     downloaded_logos = [logo for logo in downloaded_logos if logo]
 

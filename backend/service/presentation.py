@@ -25,6 +25,8 @@ def create_ppt_with_logos(logo_sources, is_local=True, slide_width=10, slide_hei
     # Determine grid size
     num_images = len(logo_sources)
     grid_columns = int(num_images ** 0.5)  # Approximate square grid
+    if grid_columns == 0:
+        grid_columns = 1
     grid_rows = (num_images + grid_columns - 1) // grid_columns  # Ceiling division
 
     # Adjust logo size based on grid
