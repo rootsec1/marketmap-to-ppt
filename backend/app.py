@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from database import SessionLocal
 from service.object_storage import *
 from service.presentation import *
@@ -8,15 +11,11 @@ import shutil
 import os
 import logging
 
+# Local imports
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, File, UploadFile, Depends
 from sqlalchemy.orm import Session
-from dotenv import load_dotenv
 
-load_dotenv()
-
-
-# Local imports
 
 # Create a tmp directory to store files before uploading to object storage
 os.makedirs("tmp", exist_ok=True)
