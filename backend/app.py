@@ -1,20 +1,20 @@
+from sqlalchemy.orm import Session
+from fastapi import FastAPI, File, UploadFile, Depends
+from fastapi.middleware.cors import CORSMiddleware
+import logging
+import os
+import shutil
+from constants import *
+from service.gemini import *
+from service.asynchronous import *
+from service.presentation import *
+from service.object_storage import *
+from database import SessionLocal
 from dotenv import load_dotenv
 load_dotenv()
 
-from database import SessionLocal
-from service.object_storage import *
-from service.presentation import *
-from service.asynchronous import *
-from service.gemini import *
-from constants import *
-import shutil
-import os
-import logging
 
 # Local imports
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, File, UploadFile, Depends
-from sqlalchemy.orm import Session
 
 
 # Create a tmp directory to store files before uploading to object storage
@@ -62,7 +62,8 @@ async def analyze_market_map(file: UploadFile = File(...), db: Session = Depends
     # company_domains = company_domain_dict.values()
     # logger.info(f"Identified company domains: {company_domains}")
 
-    company_names = company_domain_dict.keys()
+    company_names = list(company_domain_dict.keys())
+    company_domains = list(company_domain_dict.values())
     company_website_urls = await get_company_website_urls_in_parallel(company_names)
     logger.info(f"Company website URLs: {company_website_urls}")
 
@@ -98,4 +99,41 @@ async def analyze_market_map(file: UploadFile = File(...), db: Session = Depends
         "companies": company_domain_dict,
         "presentation_link": presentation_presigned_url,
         "uploaded_image_link": uploaded_file_presigned_url
+    }
+
+
+@app.get("/analyze_text")
+async def analyze_market_map_text(query: str, db: Session = Depends(get_db)):
+    logger.info(f"Received query: {query}")
+    company_domain_dict: dict = prompt_gemini(FIX_COMPANY_NAMES_PROMPT.format(query=query))
+    company_names = list(company_domain_dict.keys())
+    company_domains = list(company_domain_dict.values())
+
+    # Fetch logos for identified companies
+    logger.info("Fetching logos for identified companies in parallel")
+    downloaded_logos = await download_logos_in_parallel(company_domains)
+    # Filter out None values
+    downloaded_logos = [logo for logo in downloaded_logos if logo]
+
+    logger.info(f"Downloaded logos: {downloaded_logos}")
+    presentation_file_path = create_ppt_with_logos(downloaded_logos)
+    logger.info(f"Created presentation file: {presentation_file_path}")
+
+    # Upload presentation file to object storage
+    presentation_object_name = upload_file(presentation_file_path, "outputs", db)
+    presentation_presigned_url = get_pre_signed_url_for_object(presentation_object_name)
+    logger.info(f"Uploaded presentation file to object storage: {presentation_object_name}")
+
+    # Remove downloaded logos from filesystem
+    for logo in downloaded_logos:
+        upload_file(logo, "logos", db)
+        if os.path.exists(logo):
+            os.remove(logo)
+    logger.info("Removed downloaded logos from filesystem")
+
+    # Return presentation file as response to the user so they can download it
+    return {
+        "companies": company_domain_dict,
+        "presentation_link": presentation_presigned_url,
+        "query": query
     }

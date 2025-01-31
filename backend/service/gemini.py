@@ -24,7 +24,7 @@ model = genai.GenerativeModel(
 )
 
 
-def prompt_gemini(prompt: str, file_path: str) -> str:
+def prompt_gemini(prompt: str, file_path: str = None) -> str:
     parts = [prompt]
     if file_path:
         parts.append(Image.open(file_path))
