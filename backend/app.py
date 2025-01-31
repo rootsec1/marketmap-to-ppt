@@ -58,9 +58,13 @@ async def analyze_market_map(file: UploadFile = File(...), db: Session = Depends
         shutil.copyfileobj(file.file, buffer)
     logger.info(f"File saved to {file_location}")
 
-    company_domain_dict = prompt_gemini(IDENTIFY_LOGOS_PROMPT, file_location)
-    company_domains = company_domain_dict.values()
-    logger.info(f"Identified company domains: {company_domains}")
+    company_domain_dict: dict = prompt_gemini(IDENTIFY_LOGOS_PROMPT, file_location)
+    # company_domains = company_domain_dict.values()
+    # logger.info(f"Identified company domains: {company_domains}")
+
+    company_names = company_domain_dict.keys()
+    company_website_urls = await get_company_website_urls_in_parallel(company_names)
+    logger.info(f"Company website URLs: {company_website_urls}")
 
     # Upload file to object storage
     uploaded_file_object_name = upload_file(file_location, "inputs", db)
@@ -69,7 +73,10 @@ async def analyze_market_map(file: UploadFile = File(...), db: Session = Depends
 
     # Fetch logos for identified companies
     logger.info("Fetching logos for identified companies in parallel")
-    downloaded_logos = await download_logos_in_parallel(company_domains)
+    downloaded_logos = await download_logos_in_parallel(company_website_urls)
+    # Filter out None values
+    downloaded_logos = [logo for logo in downloaded_logos if logo]
+
     logger.info(f"Downloaded logos: {downloaded_logos}")
     presentation_file_path = create_ppt_with_logos(downloaded_logos)
     logger.info(f"Created presentation file: {presentation_file_path}")
