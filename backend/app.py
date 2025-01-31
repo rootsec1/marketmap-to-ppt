@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from sqlalchemy.orm import Session
 from fastapi import FastAPI, File, UploadFile, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,8 +13,6 @@ from service.asynchronous import *
 from service.presentation import *
 from service.object_storage import *
 from database import SessionLocal
-from dotenv import load_dotenv
-load_dotenv()
 
 
 # Local imports
