@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import shutil
+import time
 import os
 import logging
 from fastapi.middleware.cors import CORSMiddleware
@@ -76,7 +77,6 @@ async def analyze_market_map(file: UploadFile = File(...), db: Session = Depends
     # Fetch logos for identified companies
     logger.info("Fetching logos for identified companies in parallel")
     downloaded_logos = await download_logos_in_parallel(company_website_urls)
-    # Filter out None values
     downloaded_logos = [logo for logo in downloaded_logos if logo]
 
     logger.info(f"Downloaded logos: {downloaded_logos}")
@@ -90,9 +90,8 @@ async def analyze_market_map(file: UploadFile = File(...), db: Session = Depends
 
     # Remove downloaded logos from filesystem
     for logo in downloaded_logos:
-        upload_file(logo, "logos", db)
         if os.path.exists(logo):
-            os.remove(logo)
+            upload_file(logo, "logos", db)
     logger.info("Removed downloaded logos from filesystem")
 
     # Return presentation file as response to the user so they can download it
@@ -113,7 +112,6 @@ async def analyze_market_map_text(query: str, db: Session = Depends(get_db)):
     # Fetch logos for identified companies
     logger.info("Fetching logos for identified companies in parallel")
     downloaded_logos = await download_logos_in_parallel(company_website_urls)
-    # Filter out None values
     downloaded_logos = [logo for logo in downloaded_logos if logo]
 
     logger.info(f"Downloaded logos: {downloaded_logos}")
@@ -127,9 +125,8 @@ async def analyze_market_map_text(query: str, db: Session = Depends(get_db)):
 
     # Remove downloaded logos from filesystem
     for logo in downloaded_logos:
-        upload_file(logo, "logos", db)
         if os.path.exists(logo):
-            os.remove(logo)
+            upload_file(logo, "logos", db)
     logger.info("Removed downloaded logos from filesystem")
 
     # Return presentation file as response to the user so they can download it

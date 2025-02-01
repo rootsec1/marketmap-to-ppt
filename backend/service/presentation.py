@@ -3,6 +3,11 @@ from pptx.util import Inches
 import requests
 from io import BytesIO
 import os
+import logging
+
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
 def create_ppt_with_logos(logo_sources, is_local=True, slide_width=10, slide_height=7.5, margin=0.5):
@@ -17,7 +22,11 @@ def create_ppt_with_logos(logo_sources, is_local=True, slide_width=10, slide_hei
     """
     prs = Presentation()
     slide = prs.slides.add_slide(prs.slide_layouts[5])
-    
+
+    # Remove all default slide elements
+    for shape in slide.shapes:
+        shape.element.getparent().remove(shape.element)
+
     # Calculate available space
     available_width = slide_width - 2 * margin
     available_height = slide_height - 2 * margin
@@ -48,14 +57,14 @@ def create_ppt_with_logos(logo_sources, is_local=True, slide_width=10, slide_hei
                 if os.path.exists(source):
                     slide.shapes.add_picture(source, x, y, width=Inches(logo_width), height=Inches(logo_height))
                 else:
-                    print(f"⚠️ File not found: {source}, skipping...")
+                    logger.info(f"⚠️ File not found: {source}, skipping...")
             else:
                 response = requests.get(source)
                 if response.status_code == 200:
                     image_stream = BytesIO(response.content)
                     slide.shapes.add_picture(image_stream, x, y, width=Inches(logo_width), height=Inches(logo_height))
                 else:
-                    print(f"⚠️ Failed to fetch image from: {source}, skipping...")
+                    logger.info(f"⚠️ Failed to fetch image from: {source}, skipping...")
 
             # Update position for next logo
             current_column += 1
@@ -67,11 +76,11 @@ def create_ppt_with_logos(logo_sources, is_local=True, slide_width=10, slide_hei
                 x += Inches(logo_width)
 
         except Exception as e:
-            print(f"❌ Error processing {source}: {str(e)}")
+            logger.info(f"❌ Error processing {source}: {str(e)}")
 
     # Save the PowerPoint file
     ppt_path = "tmp/presentation.pptx"
     prs.save(ppt_path)
-    print(f"✅ PowerPoint file saved as {ppt_path}")
+    logger.info(f"✅ PowerPoint file saved as {ppt_path}")
 
     return ppt_path

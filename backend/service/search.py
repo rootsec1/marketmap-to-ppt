@@ -25,6 +25,8 @@ def perform_google_search_for_company_url(company_name):
     if response.status_code == 200:
         # Parse the JSON response
         search_results = response.json()
+        if "items" not in search_results:
+            return None
         link = str(search_results["items"][0]["link"]).strip()
         return link
     else:
